@@ -1,34 +1,40 @@
-# CMTF-II SIT Kong / Adapter 3.9.3 交付
+# CMTF-II Gateway / Adapter 开发交接库
 
-本仓库存放已构建的离线交付包、完整YAML及逐步部署命令。不需要Docker构建、pip安装或在线拉镜像。
+更新日期：2026-10-19
+用途：把当前代码、13001 工作流现状、验收步骤和迁移边界带到另一台电脑继续收口。
 
-- `config/kong.yaml`：完整Kong声明式配置，4个service、47条路由规则。
-- `config/adapter.yaml`：默认使用此前.228运行基线；存储从上游NocoBase获取。
-- `delivery/kong-3.9.3.zip.part*`：完整ZIP的分卷，受GitHub单文件大小限制，需先还原。
-- `delivery/manifest.json`：分卷及完整ZIP SHA256。
-- `restore-package.ps1`：本机还原及校验；不会部署或构建。
-- [部署命令清单.md](部署命令清单.md)：已整合上传命令、Token迁移、权限更新、容器创建与启动、部署验证和清理；先.229后.230，.228仅需要重部署时执行。
-- `接口清单.md`：包内实际路由。
+## 从这里开始
 
-在仓库目录执行：
+1. 阅读 [CURRENT-DEVELOPMENT-CONTEXT_20261019.md](CURRENT-DEVELOPMENT-CONTEXT_20261019.md)。
+2. 按 [ACCEPTANCE-AND-PROMOTION-RUNBOOK_20261019.md](ACCEPTANCE-AND-PROMOTION-RUNBOOK_20261019.md) 执行离线、13001、13000、211 四级验收。
+3. 代码以 `gregLee97198/kong-nocoadapter` 的 commit
+   `7142390496f8c1ff6a6b70ba443d551e4caf7935` 为准。
+4. 无法访问代码远端时，使用 `code/kong-nocoadapter-7142390-source.tar.gz`；校验值见
+   [CODE-MANIFEST_20261019.md](CODE-MANIFEST_20261019.md)。
 
-```powershell
-powershell -ExecutionPolicy Bypass -File .\restore-package.ps1
-```
+## 当前结论
 
-输出 `delivery/kong-3.9.3.zip`，仅含：
+当前版本是“可继续开发和迁移验收的候选版本”，不是已完成的 13000/211 发布结论。
 
-```text
-kong-3.9.3/kong.yaml
-kong-3.9.3/adapter.yaml
-kong-3.9.3/images/kong.tar.gz
-kong-3.9.3/images/adapter.tar.gz
-```
+- Adapter 相关离线测试：`406 passed`。
+- 13001 已收敛为一个 API Staging Dispatcher 和 12 个业务子流程；69 条废弃开发工作流已删除。
+- 统一 Dispatcher 与 12 个子流程尚无真实执行计数，必须先在 13001 做一次真实 Create/Update 验收。
+- 13000 尚未发现统一 Dispatcher，需由用户完成 NocoBase 配置迁移后再验收。
+- 211 `/health/ready` 曾返回 200，只说明连通和配置 Token 可用，不代表业务接口完成验收。
+- 代码仍暴露 Revoke、Prosecution 等不在当前目标规范/工作流范围内的旧路由；严格发布前必须删除或在入口阻断。
 
-仓库及此ZIP不含真实Token。已有SIT升级会在服务器将旧容器有效Token和实际上游接口配置迁入现场YAML；新服务器须人工填写合法配置Token。不要提交现场含Token的YAML或ZIP。
+## 目录
 
-镜像标签：kong-gateway:3.9.3、kong-adapter:3.9.3；Linux离线containerd/nerdctl，namespace cmtf2，原systemd模板负责启动/停止。
+| 路径 | 内容 |
+| --- | --- |
+| `CURRENT-DEVELOPMENT-CONTEXT_20261019.md` | 完整业务结论、架构、代码与环境现状、阻塞项。 |
+| `ACCEPTANCE-AND-PROMOTION-RUNBOOK_20261019.md` | 新电脑恢复、13001 验收、13000 迁移、211 部署与回退步骤。 |
+| `CODE-MANIFEST_20261019.md` | 源码 commit、源码包校验值、测试范围及敏感信息规则。 |
+| `code/` | 当前源码的无 Git 历史快照；不含运行 Token。 |
+| `config/`、`delivery/`、`部署命令清单.md` | 旧 SIT 3.9.3 离线包资料，仅供历史参考，不能替代当前 211 Docker Compose 配置。 |
 
-开发环境仍用/v1，SIT固定/api。保留原kong.conf、证书、CA、数据目录、已有/nocobase文件转发。不要修改外部Nginx、MinIO、Redis、NocoBase、数据库或工作流。
+## 保密与大文件边界
 
-验证边界：.228曾实际通过导入、启动与健康路由测试；另两台须逐台现场验收。ready成功不能代替真实登录、业务及文件上传下载验收。数据库曾存在10.54.227.42:5432不可达情况，需独立确认。
+本仓库不保存密码、Bearer Token、SSH 私钥、真实业务附件或现场数据库备份。本次也不提交
+`delivery/kong-3.9.3.zip` 或新的 Docker 镜像包。账号名称可记录，密码和 Token 必须在新电脑本地
+重新配置，并保持在 Git ignored 文件中。
