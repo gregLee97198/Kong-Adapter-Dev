@@ -1,0 +1,4 @@
+delivery/kong-3.9.3.zip
+*.env
+*.token
+site-private/

@@ -1,0 +1,26 @@
+{
+  "file": "kong-3.9.3.zip",
+  "sha256": "bcfec7dc72c8089d98dd915cbe65081ae64692e100d3f2bb3fd21379485ed145",
+  "parts": [
+    {
+      "file": "kong-3.9.3.zip.part01",
+      "sha256": "720273c0263880328bf1952a64b1c44c8fbb09504d90469b2f8851737ae9b4b7",
+      "bytes": 47185920
+    },
+    {
+      "file": "kong-3.9.3.zip.part02",
+      "sha256": "eba5866a0b7d19b738dd41695e5394f9f301bf2e6a52c41fef1225a748d97b51",
+      "bytes": 47185920
+    },
+    {
+      "file": "kong-3.9.3.zip.part03",
+      "sha256": "cfe9986f2e79a7f063bfc36e19147f1e71506804dcfb7f2b3c16c614199c0d08",
+      "bytes": 47185920
+    },
+    {
+      "file": "kong-3.9.3.zip.part04",
+      "sha256": "7558d535862668cc8dbc26d7658d173d54fb036fb9899c8dc5ff311d189ecbcf",
+      "bytes": 35476581
+    }
+  ]
+}

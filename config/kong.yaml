@@ -1,0 +1,1652 @@
+# SIT gateway configuration; defaults follow the previously verified .228 baseline.
+# Host file: /etc/cmtf2/kong/kong.yml -> container /etc/kong/kong.yml.
+# Edit mounted host file, then restart Kong. No image rebuild required.
+# SITE CHECK: upstream targets, native auth path, CA certificates and S3 forwarding.
+# Preserve /api routes and strip_path behavior. Names containing v1 are identifiers.
+# Listener/TLS private-key paths remain in existing /etc/cmtf2/kong/kong.conf.
+# Public cmtf2sit domain is handled by the existing external Nginx configuration.
+_format_version: '3.0'
+_transform: true
+services:
+- name: nocobase-native-auth-service
+  protocol: https
+  host: nocobase-backend
+  port: 8443
+  tls_verify: true
+  ca_certificates:
+  - 7f3a9c1e-2b4d-4e5f-8a9b-0c1d2e3f4a5b
+  - 7f3a9c1e-2b4d-4e5f-8a9b-0c1d2e3f4a5c
+  tls_verify_depth: 3
+  path: /cmtf2/api/auth:signIn
+  retries: 0
+  connect_timeout: 5000
+  read_timeout: 10000
+  write_timeout: 10000
+  routes:
+  - name: nocobase-native-token-v1-route
+    protocols:
+    - http
+    - https
+    methods:
+    - POST
+    paths:
+    - /api/auth/token
+    strip_path: true
+    preserve_host: false
+    request_buffering: true
+    response_buffering: true
+    plugins:
+    - name: request-transformer
+      config:
+        remove:
+          headers:
+          - Authorization
+          - X-API-Key
+          - X-Authenticator
+        add:
+          headers:
+          - X-Authenticator:basic
+    - name: rate-limiting
+      config:
+        minute: 10
+        limit_by: ip
+        policy: local
+        fault_tolerant: true
+    - name: request-size-limiting
+      config:
+        allowed_payload_size: 1
+        size_unit: megabytes
+        require_content_length: true
+- name: nocobase-file-adapter-service
+  protocol: http
+  host: 127.0.0.1
+  port: 8080
+  retries: 0
+  connect_timeout: 5000
+  read_timeout: 600000
+  write_timeout: 600000
+  routes:
+  - name: nocobase-adapter-health-v1-route
+    protocols:
+    - http
+    - https
+    methods:
+    - GET
+    paths:
+    - ~/api/health/live$
+    - ~/api/health/ready$
+    strip_path: false
+    preserve_host: false
+    path_handling: v0
+    request_buffering: true
+    response_buffering: true
+    plugins:
+    - name: request-transformer
+      config:
+        remove:
+          headers:
+          - Authorization
+          - X-API-Key
+          - X-Authenticator
+          - X-Adapter-Key
+          - X-Consumer-Custom-ID
+          - X-NocoBase-Authorization
+    - name: rate-limiting
+      config:
+        minute: 120
+        limit_by: ip
+        policy: local
+        fault_tolerant: true
+  - name: nocobase-simple-test-native-route
+    protocols:
+    - http
+    - https
+    methods:
+    - POST
+    paths:
+    - ~/simple-test$
+    strip_path: false
+    preserve_host: false
+    path_handling: v0
+    request_buffering: true
+    response_buffering: true
+    plugins:
+    - name: request-transformer
+      config:
+        remove:
+          headers:
+          - X-API-Key
+          - X-Authenticator
+          - X-Adapter-Key
+          - X-Consumer-Custom-ID
+    - name: rate-limiting
+      config:
+        minute: 60
+        limit_by: ip
+        policy: local
+        fault_tolerant: true
+    - name: request-size-limiting
+      config:
+        allowed_payload_size: 1
+        size_unit: megabytes
+        require_content_length: false
+  - name: nocobase-homerecord-query-native-route
+    protocols:
+    - http
+    - https
+    methods:
+    - POST
+    paths:
+    - ~/homerecord-query$
+    strip_path: false
+    preserve_host: false
+    path_handling: v0
+    request_buffering: true
+    response_buffering: true
+    plugins:
+    - name: request-transformer
+      config:
+        remove:
+          headers:
+          - X-API-Key
+          - X-Authenticator
+          - X-Adapter-Key
+          - X-Consumer-Custom-ID
+    - name: rate-limiting
+      config:
+        minute: 60
+        limit_by: ip
+        policy: local
+        fault_tolerant: true
+    - name: request-size-limiting
+      config:
+        allowed_payload_size: 1
+        size_unit: megabytes
+        require_content_length: false
+  - name: nocobase-create-intake-for-new-licence-v1-route
+    protocols:
+    - http
+    - https
+    methods:
+    - POST
+    paths:
+    - ~/api/create_intake_for_new_licence$
+    strip_path: false
+    preserve_host: false
+    path_handling: v0
+    request_buffering: true
+    response_buffering: true
+    plugins:
+    - name: request-transformer
+      config:
+        remove:
+          headers:
+          - X-API-Key
+          - X-Authenticator
+          - X-Adapter-Key
+          - X-Consumer-Custom-ID
+          - X-NocoBase-Authorization
+    - name: rate-limiting
+      config:
+        minute: 30
+        limit_by: ip
+        policy: local
+        fault_tolerant: true
+    - name: request-size-limiting
+      config:
+        allowed_payload_size: 2
+        size_unit: megabytes
+        require_content_length: true
+  - name: nocobase-update-new-licence-data-v1-route
+    protocols:
+    - http
+    - https
+    methods:
+    - POST
+    paths:
+    - ~/api/update_new_licence_data$
+    strip_path: false
+    preserve_host: false
+    path_handling: v0
+    request_buffering: true
+    response_buffering: true
+    plugins:
+    - name: request-transformer
+      config:
+        remove:
+          headers:
+          - X-API-Key
+          - X-Authenticator
+          - X-Adapter-Key
+          - X-Consumer-Custom-ID
+          - X-NocoBase-Authorization
+    - name: rate-limiting
+      config:
+        minute: 30
+        limit_by: ip
+        policy: local
+        fault_tolerant: true
+    - name: request-size-limiting
+      config:
+        allowed_payload_size: 2
+        size_unit: megabytes
+        require_content_length: true
+  - name: nocobase-create-intake-for-changing-home-v1-route
+    protocols:
+    - http
+    - https
+    methods:
+    - POST
+    paths:
+    - ~/api/create_intake_for_changing_home$
+    strip_path: false
+    preserve_host: false
+    path_handling: v0
+    request_buffering: true
+    response_buffering: true
+    plugins:
+    - name: request-transformer
+      config:
+        remove:
+          headers:
+          - X-API-Key
+          - X-Authenticator
+          - X-Adapter-Key
+          - X-Consumer-Custom-ID
+          - X-NocoBase-Authorization
+    - name: rate-limiting
+      config:
+        minute: 30
+        limit_by: ip
+        policy: local
+        fault_tolerant: true
+    - name: request-size-limiting
+      config:
+        allowed_payload_size: 2
+        size_unit: megabytes
+        require_content_length: true
+  - name: nocobase-update-changing-home-data-v1-route
+    protocols:
+    - http
+    - https
+    methods:
+    - POST
+    paths:
+    - ~/api/update_changing_home_data$
+    strip_path: false
+    preserve_host: false
+    path_handling: v0
+    request_buffering: true
+    response_buffering: true
+    plugins:
+    - name: request-transformer
+      config:
+        remove:
+          headers:
+          - X-API-Key
+          - X-Authenticator
+          - X-Adapter-Key
+          - X-Consumer-Custom-ID
+          - X-NocoBase-Authorization
+    - name: rate-limiting
+      config:
+        minute: 30
+        limit_by: ip
+        policy: local
+        fault_tolerant: true
+    - name: request-size-limiting
+      config:
+        allowed_payload_size: 2
+        size_unit: megabytes
+        require_content_length: true
+  - name: nocobase-create-intake-for-self-withdraw-v1-route
+    protocols:
+    - http
+    - https
+    methods:
+    - POST
+    paths:
+    - ~/api/create_intake_for_self_withdraw$
+    strip_path: false
+    preserve_host: false
+    path_handling: v0
+    request_buffering: true
+    response_buffering: true
+    plugins:
+    - name: request-transformer
+      config:
+        remove:
+          headers:
+          - X-API-Key
+          - X-Authenticator
+          - X-Adapter-Key
+          - X-Consumer-Custom-ID
+          - X-NocoBase-Authorization
+    - name: rate-limiting
+      config:
+        minute: 30
+        limit_by: ip
+        policy: local
+        fault_tolerant: true
+    - name: request-size-limiting
+      config:
+        allowed_payload_size: 2
+        size_unit: megabytes
+        require_content_length: true
+  - name: nocobase-update-self-withdraw-data-v1-route
+    protocols:
+    - http
+    - https
+    methods:
+    - POST
+    paths:
+    - ~/api/update_self_withdraw_data$
+    strip_path: false
+    preserve_host: false
+    path_handling: v0
+    request_buffering: true
+    response_buffering: true
+    plugins:
+    - name: request-transformer
+      config:
+        remove:
+          headers:
+          - X-API-Key
+          - X-Authenticator
+          - X-Adapter-Key
+          - X-Consumer-Custom-ID
+          - X-NocoBase-Authorization
+    - name: rate-limiting
+      config:
+        minute: 30
+        limit_by: ip
+        policy: local
+        fault_tolerant: true
+    - name: request-size-limiting
+      config:
+        allowed_payload_size: 2
+        size_unit: megabytes
+        require_content_length: true
+  - name: nocobase-create-intake-for-revoke-licence-v1-route
+    protocols:
+    - http
+    - https
+    methods:
+    - POST
+    paths:
+    - ~/api/create_intake_for_revoke_licence$
+    strip_path: false
+    preserve_host: false
+    path_handling: v0
+    request_buffering: true
+    response_buffering: true
+    plugins:
+    - name: request-transformer
+      config:
+        remove:
+          headers:
+          - X-API-Key
+          - X-Authenticator
+          - X-Adapter-Key
+          - X-Consumer-Custom-ID
+          - X-NocoBase-Authorization
+    - name: rate-limiting
+      config:
+        minute: 30
+        limit_by: ip
+        policy: local
+        fault_tolerant: true
+    - name: request-size-limiting
+      config:
+        allowed_payload_size: 2
+        size_unit: megabytes
+        require_content_length: true
+  - name: nocobase-update-revoke-licence-data-v1-route
+    protocols:
+    - http
+    - https
+    methods:
+    - POST
+    paths:
+    - ~/api/update_revoke_licence_data$
+    strip_path: false
+    preserve_host: false
+    path_handling: v0
+    request_buffering: true
+    response_buffering: true
+    plugins:
+    - name: request-transformer
+      config:
+        remove:
+          headers:
+          - X-API-Key
+          - X-Authenticator
+          - X-Adapter-Key
+          - X-Consumer-Custom-ID
+          - X-NocoBase-Authorization
+    - name: rate-limiting
+      config:
+        minute: 30
+        limit_by: ip
+        policy: local
+        fault_tolerant: true
+    - name: request-size-limiting
+      config:
+        allowed_payload_size: 2
+        size_unit: megabytes
+        require_content_length: true
+  - name: nocobase-create-intake-for-specific-hour-v1-route
+    protocols:
+    - http
+    - https
+    methods:
+    - POST
+    paths:
+    - ~/api/create_intake_for_specific_hour$
+    strip_path: false
+    preserve_host: false
+    path_handling: v0
+    request_buffering: true
+    response_buffering: true
+    plugins:
+    - name: request-transformer
+      config:
+        remove:
+          headers:
+          - X-API-Key
+          - X-Authenticator
+          - X-Adapter-Key
+          - X-Consumer-Custom-ID
+          - X-NocoBase-Authorization
+    - name: rate-limiting
+      config:
+        minute: 30
+        limit_by: ip
+        policy: local
+        fault_tolerant: true
+    - name: request-size-limiting
+      config:
+        allowed_payload_size: 2
+        size_unit: megabytes
+        require_content_length: true
+  - name: nocobase-update-specific-hour-data-v1-route
+    protocols:
+    - http
+    - https
+    methods:
+    - POST
+    paths:
+    - ~/api/update_specific_hour_data$
+    strip_path: false
+    preserve_host: false
+    path_handling: v0
+    request_buffering: true
+    response_buffering: true
+    plugins:
+    - name: request-transformer
+      config:
+        remove:
+          headers:
+          - X-API-Key
+          - X-Authenticator
+          - X-Adapter-Key
+          - X-Consumer-Custom-ID
+          - X-NocoBase-Authorization
+    - name: rate-limiting
+      config:
+        minute: 30
+        limit_by: ip
+        policy: local
+        fault_tolerant: true
+    - name: request-size-limiting
+      config:
+        allowed_payload_size: 2
+        size_unit: megabytes
+        require_content_length: true
+  - name: nocobase-create-intake-for-rp-v1-route
+    protocols:
+    - http
+    - https
+    methods:
+    - POST
+    paths:
+    - ~/api/create_intake_for_rp$
+    strip_path: false
+    preserve_host: false
+    path_handling: v0
+    request_buffering: true
+    response_buffering: true
+    plugins:
+    - name: request-transformer
+      config:
+        remove:
+          headers:
+          - X-API-Key
+          - X-Authenticator
+          - X-Adapter-Key
+          - X-Consumer-Custom-ID
+          - X-NocoBase-Authorization
+    - name: rate-limiting
+      config:
+        minute: 30
+        limit_by: ip
+        policy: local
+        fault_tolerant: true
+    - name: request-size-limiting
+      config:
+        allowed_payload_size: 2
+        size_unit: megabytes
+        require_content_length: true
+  - name: nocobase-update-rp-data-v1-route
+    protocols:
+    - http
+    - https
+    methods:
+    - POST
+    paths:
+    - ~/api/update_rp_data$
+    strip_path: false
+    preserve_host: false
+    path_handling: v0
+    request_buffering: true
+    response_buffering: true
+    plugins:
+    - name: request-transformer
+      config:
+        remove:
+          headers:
+          - X-API-Key
+          - X-Authenticator
+          - X-Adapter-Key
+          - X-Consumer-Custom-ID
+          - X-NocoBase-Authorization
+    - name: rate-limiting
+      config:
+        minute: 30
+        limit_by: ip
+        policy: local
+        fault_tolerant: true
+    - name: request-size-limiting
+      config:
+        allowed_payload_size: 2
+        size_unit: megabytes
+        require_content_length: true
+  - name: nocobase-create-intake-for-change-home-manager-v1-route
+    protocols:
+    - http
+    - https
+    methods:
+    - POST
+    paths:
+    - ~/api/create_intake_for_change_home_manager$
+    strip_path: false
+    preserve_host: false
+    path_handling: v0
+    request_buffering: true
+    response_buffering: true
+    plugins:
+    - name: request-transformer
+      config:
+        remove:
+          headers:
+          - X-API-Key
+          - X-Authenticator
+          - X-Adapter-Key
+          - X-Consumer-Custom-ID
+          - X-NocoBase-Authorization
+    - name: rate-limiting
+      config:
+        minute: 30
+        limit_by: ip
+        policy: local
+        fault_tolerant: true
+    - name: request-size-limiting
+      config:
+        allowed_payload_size: 2
+        size_unit: megabytes
+        require_content_length: true
+  - name: nocobase-update-change-home-manager-data-v1-route
+    protocols:
+    - http
+    - https
+    methods:
+    - POST
+    paths:
+    - ~/api/update_change_home_manager_data$
+    strip_path: false
+    preserve_host: false
+    path_handling: v0
+    request_buffering: true
+    response_buffering: true
+    plugins:
+    - name: request-transformer
+      config:
+        remove:
+          headers:
+          - X-API-Key
+          - X-Authenticator
+          - X-Adapter-Key
+          - X-Consumer-Custom-ID
+          - X-NocoBase-Authorization
+    - name: rate-limiting
+      config:
+        minute: 30
+        limit_by: ip
+        policy: local
+        fault_tolerant: true
+    - name: request-size-limiting
+      config:
+        allowed_payload_size: 2
+        size_unit: megabytes
+        require_content_length: true
+  - name: nocobase-create-intake-for-change-beds-v1-route
+    protocols:
+    - http
+    - https
+    methods:
+    - POST
+    paths:
+    - ~/api/create_intake_for_change_beds$
+    strip_path: false
+    preserve_host: false
+    path_handling: v0
+    request_buffering: true
+    response_buffering: true
+    plugins:
+    - name: request-transformer
+      config:
+        remove:
+          headers:
+          - X-API-Key
+          - X-Authenticator
+          - X-Adapter-Key
+          - X-Consumer-Custom-ID
+          - X-NocoBase-Authorization
+    - name: rate-limiting
+      config:
+        minute: 30
+        limit_by: ip
+        policy: local
+        fault_tolerant: true
+    - name: request-size-limiting
+      config:
+        allowed_payload_size: 2
+        size_unit: megabytes
+        require_content_length: true
+  - name: nocobase-update-change-beds-data-v1-route
+    protocols:
+    - http
+    - https
+    methods:
+    - POST
+    paths:
+    - ~/api/update_change_beds_data$
+    strip_path: false
+    preserve_host: false
+    path_handling: v0
+    request_buffering: true
+    response_buffering: true
+    plugins:
+    - name: request-transformer
+      config:
+        remove:
+          headers:
+          - X-API-Key
+          - X-Authenticator
+          - X-Adapter-Key
+          - X-Consumer-Custom-ID
+          - X-NocoBase-Authorization
+    - name: rate-limiting
+      config:
+        minute: 30
+        limit_by: ip
+        policy: local
+        fault_tolerant: true
+    - name: request-size-limiting
+      config:
+        allowed_payload_size: 2
+        size_unit: megabytes
+        require_content_length: true
+  - name: nocobase-create-intake-for-change-operation-mode-v1-route
+    protocols:
+    - http
+    - https
+    methods:
+    - POST
+    paths:
+    - ~/api/create_intake_for_change_operation_mode$
+    strip_path: false
+    preserve_host: false
+    path_handling: v0
+    request_buffering: true
+    response_buffering: true
+    plugins:
+    - name: request-transformer
+      config:
+        remove:
+          headers:
+          - X-API-Key
+          - X-Authenticator
+          - X-Adapter-Key
+          - X-Consumer-Custom-ID
+          - X-NocoBase-Authorization
+    - name: rate-limiting
+      config:
+        minute: 30
+        limit_by: ip
+        policy: local
+        fault_tolerant: true
+    - name: request-size-limiting
+      config:
+        allowed_payload_size: 2
+        size_unit: megabytes
+        require_content_length: true
+  - name: nocobase-update-change-operation-mode-data-v1-route
+    protocols:
+    - http
+    - https
+    methods:
+    - POST
+    paths:
+    - ~/api/update_change_operation_mode_data$
+    strip_path: false
+    preserve_host: false
+    path_handling: v0
+    request_buffering: true
+    response_buffering: true
+    plugins:
+    - name: request-transformer
+      config:
+        remove:
+          headers:
+          - X-API-Key
+          - X-Authenticator
+          - X-Adapter-Key
+          - X-Consumer-Custom-ID
+          - X-NocoBase-Authorization
+    - name: rate-limiting
+      config:
+        minute: 30
+        limit_by: ip
+        policy: local
+        fault_tolerant: true
+    - name: request-size-limiting
+      config:
+        allowed_payload_size: 2
+        size_unit: megabytes
+        require_content_length: true
+  - name: nocobase-create-intake-for-change-directors-v1-route
+    protocols:
+    - http
+    - https
+    methods:
+    - POST
+    paths:
+    - ~/api/create_intake_for_change_directors$
+    strip_path: false
+    preserve_host: false
+    path_handling: v0
+    request_buffering: true
+    response_buffering: true
+    plugins:
+    - name: request-transformer
+      config:
+        remove:
+          headers:
+          - X-API-Key
+          - X-Authenticator
+          - X-Adapter-Key
+          - X-Consumer-Custom-ID
+          - X-NocoBase-Authorization
+    - name: rate-limiting
+      config:
+        minute: 30
+        limit_by: ip
+        policy: local
+        fault_tolerant: true
+    - name: request-size-limiting
+      config:
+        allowed_payload_size: 2
+        size_unit: megabytes
+        require_content_length: true
+  - name: nocobase-update-change-directors-data-v1-route
+    protocols:
+    - http
+    - https
+    methods:
+    - POST
+    paths:
+    - ~/api/update_change_directors_data$
+    strip_path: false
+    preserve_host: false
+    path_handling: v0
+    request_buffering: true
+    response_buffering: true
+    plugins:
+    - name: request-transformer
+      config:
+        remove:
+          headers:
+          - X-API-Key
+          - X-Authenticator
+          - X-Adapter-Key
+          - X-Consumer-Custom-ID
+          - X-NocoBase-Authorization
+    - name: rate-limiting
+      config:
+        minute: 30
+        limit_by: ip
+        policy: local
+        fault_tolerant: true
+    - name: request-size-limiting
+      config:
+        allowed_payload_size: 2
+        size_unit: megabytes
+        require_content_length: true
+  - name: nocobase-create-intake-for-change-nurse-in-charge-v1-route
+    protocols:
+    - http
+    - https
+    methods:
+    - POST
+    paths:
+    - ~/api/create_intake_for_change_nurse_in_charge$
+    strip_path: false
+    preserve_host: false
+    path_handling: v0
+    request_buffering: true
+    response_buffering: true
+    plugins:
+    - name: request-transformer
+      config:
+        remove:
+          headers:
+          - X-API-Key
+          - X-Authenticator
+          - X-Adapter-Key
+          - X-Consumer-Custom-ID
+          - X-NocoBase-Authorization
+    - name: rate-limiting
+      config:
+        minute: 30
+        limit_by: ip
+        policy: local
+        fault_tolerant: true
+    - name: request-size-limiting
+      config:
+        allowed_payload_size: 2
+        size_unit: megabytes
+        require_content_length: true
+  - name: nocobase-update-change-nurse-in-charge-data-v1-route
+    protocols:
+    - http
+    - https
+    methods:
+    - POST
+    paths:
+    - ~/api/update_change_nurse_in_charge_data$
+    strip_path: false
+    preserve_host: false
+    path_handling: v0
+    request_buffering: true
+    response_buffering: true
+    plugins:
+    - name: request-transformer
+      config:
+        remove:
+          headers:
+          - X-API-Key
+          - X-Authenticator
+          - X-Adapter-Key
+          - X-Consumer-Custom-ID
+          - X-NocoBase-Authorization
+    - name: rate-limiting
+      config:
+        minute: 30
+        limit_by: ip
+        policy: local
+        fault_tolerant: true
+    - name: request-size-limiting
+      config:
+        allowed_payload_size: 2
+        size_unit: megabytes
+        require_content_length: true
+  - name: nocobase-create-intake-for-prosecution-v1-route
+    protocols:
+    - http
+    - https
+    methods:
+    - POST
+    paths:
+    - ~/api/create_intake_for_prosecution$
+    strip_path: false
+    preserve_host: false
+    path_handling: v0
+    request_buffering: true
+    response_buffering: true
+    plugins:
+    - name: request-transformer
+      config:
+        remove:
+          headers:
+          - X-API-Key
+          - X-Authenticator
+          - X-Adapter-Key
+          - X-Consumer-Custom-ID
+          - X-NocoBase-Authorization
+    - name: rate-limiting
+      config:
+        minute: 30
+        limit_by: ip
+        policy: local
+        fault_tolerant: true
+    - name: request-size-limiting
+      config:
+        allowed_payload_size: 2
+        size_unit: megabytes
+        require_content_length: true
+  - name: nocobase-update-prosecution-data-v1-route
+    protocols:
+    - http
+    - https
+    methods:
+    - POST
+    paths:
+    - ~/api/update_prosecution_data$
+    strip_path: false
+    preserve_host: false
+    path_handling: v0
+    request_buffering: true
+    response_buffering: true
+    plugins:
+    - name: request-transformer
+      config:
+        remove:
+          headers:
+          - X-API-Key
+          - X-Authenticator
+          - X-Adapter-Key
+          - X-Consumer-Custom-ID
+          - X-NocoBase-Authorization
+    - name: rate-limiting
+      config:
+        minute: 30
+        limit_by: ip
+        policy: local
+        fault_tolerant: true
+    - name: request-size-limiting
+      config:
+        allowed_payload_size: 2
+        size_unit: megabytes
+        require_content_length: true
+  - name: nocobase-create-licence-renewal-v1-route
+    protocols:
+    - http
+    - https
+    methods:
+    - POST
+    paths:
+    - ~/api/create_licence_renewal$
+    strip_path: false
+    preserve_host: false
+    path_handling: v0
+    request_buffering: true
+    response_buffering: true
+    plugins:
+    - name: request-transformer
+      config:
+        remove:
+          headers:
+          - X-API-Key
+          - X-Authenticator
+          - X-Adapter-Key
+          - X-Consumer-Custom-ID
+          - X-NocoBase-Authorization
+    - name: rate-limiting
+      config:
+        minute: 30
+        limit_by: ip
+        policy: local
+        fault_tolerant: true
+    - name: request-size-limiting
+      config:
+        allowed_payload_size: 2
+        size_unit: megabytes
+        require_content_length: true
+  - name: nocobase-update-licence-renewal-data-v1-route
+    protocols:
+    - http
+    - https
+    methods:
+    - POST
+    paths:
+    - ~/api/update_licence_renewal_data$
+    strip_path: false
+    preserve_host: false
+    path_handling: v0
+    request_buffering: true
+    response_buffering: true
+    plugins:
+    - name: request-transformer
+      config:
+        remove:
+          headers:
+          - X-API-Key
+          - X-Authenticator
+          - X-Adapter-Key
+          - X-Consumer-Custom-ID
+          - X-NocoBase-Authorization
+    - name: rate-limiting
+      config:
+        minute: 30
+        limit_by: ip
+        policy: local
+        fault_tolerant: true
+    - name: request-size-limiting
+      config:
+        allowed_payload_size: 2
+        size_unit: megabytes
+        require_content_length: true
+  - name: nocobase-create-expansion-aip-v1-route
+    protocols:
+    - https
+    methods:
+    - POST
+    paths:
+    - ~/api/create_intake_for_expansion_aip$
+    https_redirect_status_code: 426
+    strip_path: false
+    preserve_host: false
+    path_handling: v0
+    request_buffering: true
+    response_buffering: true
+    plugins:
+    - name: request-transformer
+      config:
+        remove:
+          headers:
+          - X-API-Key
+          - X-Authenticator
+          - X-Adapter-Key
+          - X-Consumer-Custom-ID
+          - X-NocoBase-Authorization
+    - name: rate-limiting
+      config:
+        minute: 30
+        limit_by: ip
+        policy: local
+        fault_tolerant: true
+    - name: request-size-limiting
+      config:
+        allowed_payload_size: 2
+        size_unit: megabytes
+        require_content_length: true
+  - name: nocobase-update-expansion-aip-v1-route
+    protocols:
+    - https
+    methods:
+    - POST
+    paths:
+    - ~/api/update_expansion_aip_data$
+    https_redirect_status_code: 426
+    strip_path: false
+    preserve_host: false
+    path_handling: v0
+    request_buffering: true
+    response_buffering: true
+    plugins:
+    - name: request-transformer
+      config:
+        remove:
+          headers:
+          - X-API-Key
+          - X-Authenticator
+          - X-Adapter-Key
+          - X-Consumer-Custom-ID
+          - X-NocoBase-Authorization
+    - name: rate-limiting
+      config:
+        minute: 30
+        limit_by: ip
+        policy: local
+        fault_tolerant: true
+    - name: request-size-limiting
+      config:
+        allowed_payload_size: 2
+        size_unit: megabytes
+        require_content_length: true
+  - name: nocobase-request-status-v1-route
+    protocols:
+    - http
+    - https
+    methods:
+    - GET
+    paths:
+    - ~/api/request/[^/]+$
+    strip_path: false
+    preserve_host: false
+    path_handling: v0
+    request_buffering: true
+    response_buffering: true
+    plugins:
+    - name: request-transformer
+      config:
+        remove:
+          headers:
+          - X-API-Key
+          - X-Adapter-Key
+          - X-Consumer-Custom-ID
+          - X-NocoBase-Authorization
+    - name: rate-limiting
+      config:
+        minute: 120
+        limit_by: ip
+        policy: local
+        fault_tolerant: true
+  - name: nocobase-intake-query-v1-route
+    protocols:
+    - http
+    - https
+    methods:
+    - GET
+    paths:
+    - ~/api/intakes$
+    strip_path: false
+    preserve_host: false
+    path_handling: v0
+    request_buffering: true
+    response_buffering: true
+    plugins:
+    - name: request-transformer
+      config:
+        remove:
+          headers:
+          - X-API-Key
+          - X-Adapter-Key
+          - X-Consumer-Custom-ID
+          - X-NocoBase-Authorization
+    - name: rate-limiting
+      config:
+        minute: 60
+        limit_by: ip
+        policy: local
+        fault_tolerant: true
+  - name: nocobase-new-licence-query-v1-route
+    protocols:
+    - http
+    - https
+    methods:
+    - GET
+    paths:
+    - ~/api/new-licence-applications$
+    strip_path: false
+    preserve_host: false
+    path_handling: v0
+    request_buffering: true
+    response_buffering: true
+    plugins:
+    - name: request-transformer
+      config:
+        remove:
+          headers:
+          - X-API-Key
+          - X-Adapter-Key
+          - X-Consumer-Custom-ID
+          - X-NocoBase-Authorization
+    - name: rate-limiting
+      config:
+        minute: 60
+        limit_by: ip
+        policy: local
+        fault_tolerant: true
+  - name: nocobase-new-licence-checklist-v1-route
+    protocols:
+    - http
+    - https
+    methods:
+    - GET
+    paths:
+    - ~/api/new-licence-checklist$
+    strip_path: false
+    preserve_host: false
+    path_handling: v0
+    request_buffering: true
+    response_buffering: true
+    plugins:
+    - name: request-transformer
+      config:
+        remove:
+          headers:
+          - X-API-Key
+          - X-Adapter-Key
+          - X-Consumer-Custom-ID
+          - X-NocoBase-Authorization
+    - name: rate-limiting
+      config:
+        minute: 60
+        limit_by: ip
+        policy: local
+        fault_tolerant: true
+  - name: nocobase-licence-renewal-checklist-v1-route
+    protocols:
+    - http
+    - https
+    methods:
+    - GET
+    paths:
+    - ~/api/licence-renewal-checklist$
+    strip_path: false
+    preserve_host: false
+    path_handling: v0
+    request_buffering: true
+    response_buffering: true
+    plugins:
+    - name: request-transformer
+      config:
+        remove:
+          headers:
+          - X-API-Key
+          - X-Adapter-Key
+          - X-Consumer-Custom-ID
+          - X-NocoBase-Authorization
+    - name: rate-limiting
+      config:
+        minute: 60
+        limit_by: ip
+        policy: local
+        fault_tolerant: true
+  - name: nocobase-expansion-aip-checklist-v1-route
+    protocols:
+    - https
+    methods:
+    - GET
+    paths:
+    - ~/api/expansion-aip-checklist$
+    https_redirect_status_code: 426
+    strip_path: false
+    preserve_host: false
+    path_handling: v0
+    request_buffering: true
+    response_buffering: true
+    plugins:
+    - name: request-transformer
+      config:
+        remove:
+          headers:
+          - X-API-Key
+          - X-Adapter-Key
+          - X-Consumer-Custom-ID
+          - X-NocoBase-Authorization
+    - name: rate-limiting
+      config:
+        minute: 60
+        limit_by: ip
+        policy: local
+        fault_tolerant: true
+  - name: nocobase-changing-home-checklist-v1-route
+    protocols:
+    - http
+    - https
+    methods:
+    - GET
+    paths:
+    - ~/api/changing-home-checklist$
+    strip_path: false
+    preserve_host: false
+    path_handling: v0
+    request_buffering: true
+    response_buffering: true
+    plugins:
+    - name: request-transformer
+      config:
+        remove:
+          headers:
+          - X-API-Key
+          - X-Adapter-Key
+          - X-Consumer-Custom-ID
+          - X-NocoBase-Authorization
+    - name: rate-limiting
+      config:
+        minute: 60
+        limit_by: ip
+        policy: local
+        fault_tolerant: true
+  - name: nocobase-self-withdraw-checklist-v1-route
+    protocols:
+    - http
+    - https
+    methods:
+    - GET
+    paths:
+    - ~/api/self-withdraw-checklist$
+    strip_path: false
+    preserve_host: false
+    path_handling: v0
+    request_buffering: true
+    response_buffering: true
+    plugins:
+    - name: request-transformer
+      config:
+        remove:
+          headers:
+          - X-API-Key
+          - X-Adapter-Key
+          - X-Consumer-Custom-ID
+          - X-NocoBase-Authorization
+    - name: rate-limiting
+      config:
+        minute: 60
+        limit_by: ip
+        policy: local
+        fault_tolerant: true
+  - name: nocobase-revoke-licence-checklist-v1-route
+    protocols:
+    - https
+    methods:
+    - GET
+    paths:
+    - ~/api/revoke-licence-checklist$
+    https_redirect_status_code: 426
+    strip_path: false
+    preserve_host: false
+    path_handling: v0
+    request_buffering: true
+    response_buffering: true
+    plugins:
+    - name: request-transformer
+      config:
+        remove:
+          headers:
+          - X-API-Key
+          - X-Adapter-Key
+          - X-Consumer-Custom-ID
+          - X-NocoBase-Authorization
+    - name: rate-limiting
+      config:
+        minute: 60
+        limit_by: ip
+        policy: local
+        fault_tolerant: true
+  - name: nocobase-specific-hour-checklist-v1-route
+    protocols:
+    - http
+    - https
+    methods:
+    - GET
+    paths:
+    - ~/api/specific-hour-checklist$
+    strip_path: false
+    preserve_host: false
+    path_handling: v0
+    request_buffering: true
+    response_buffering: true
+    plugins:
+    - name: request-transformer
+      config:
+        remove:
+          headers:
+          - X-API-Key
+          - X-Adapter-Key
+          - X-Consumer-Custom-ID
+          - X-NocoBase-Authorization
+    - name: rate-limiting
+      config:
+        minute: 60
+        limit_by: ip
+        policy: local
+        fault_tolerant: true
+  - name: nocobase-rp-checklist-v1-route
+    protocols:
+    - http
+    - https
+    methods:
+    - GET
+    paths:
+    - ~/api/rp-checklist$
+    strip_path: false
+    preserve_host: false
+    path_handling: v0
+    request_buffering: true
+    response_buffering: true
+    plugins:
+    - name: request-transformer
+      config:
+        remove:
+          headers:
+          - X-API-Key
+          - X-Adapter-Key
+          - X-Consumer-Custom-ID
+          - X-NocoBase-Authorization
+    - name: rate-limiting
+      config:
+        minute: 60
+        limit_by: ip
+        policy: local
+        fault_tolerant: true
+  - name: nocobase-files-v1-route
+    protocols:
+    - http
+    - https
+    methods:
+    - POST
+    paths:
+    - /api/files
+    strip_path: false
+    preserve_host: false
+    request_buffering: false
+    response_buffering: true
+    plugins:
+    - name: request-transformer
+      config:
+        remove:
+          headers:
+          - X-Adapter-Key
+          - X-Consumer-Custom-ID
+    - name: rate-limiting
+      config:
+        minute: 30
+        limit_by: ip
+        policy: local
+        fault_tolerant: true
+    - name: request-size-limiting
+      config:
+        allowed_payload_size: 510
+        size_unit: megabytes
+        require_content_length: true
+  - name: nocobase-file-download-v1-route
+    protocols:
+    - http
+    - https
+    methods:
+    - GET
+    paths:
+    - ~/api/files/[^/]+$
+    strip_path: false
+    preserve_host: false
+    path_handling: v0
+    request_buffering: true
+    response_buffering: false
+    plugins:
+    - name: request-transformer
+      config:
+        remove:
+          headers:
+          - X-Adapter-Key
+          - X-Consumer-Custom-ID
+    - name: rate-limiting
+      config:
+        minute: 120
+        limit_by: ip
+        policy: local
+        fault_tolerant: true
+- name: nocobase-application-api-service
+  protocol: https
+  host: nocobase-backend
+  port: 8443
+  tls_verify: true
+  ca_certificates:
+  - 7f3a9c1e-2b4d-4e5f-8a9b-0c1d2e3f4a5b
+  - 7f3a9c1e-2b4d-4e5f-8a9b-0c1d2e3f4a5c
+  tls_verify_depth: 3
+  retries: 0
+  connect_timeout: 5000
+  read_timeout: 60000
+  write_timeout: 60000
+  routes:
+  - name: nocobase-application-api-route
+    protocols:
+    - https
+    paths:
+    - /cmtf2/api/
+    strip_path: false
+    preserve_host: false
+    request_buffering: true
+    response_buffering: true
+# SITE: existing transparent file forwarding; this is not adapter storage credentials.
+# .228 baseline uses DMS91V:9000. Preserve actual site forwarding when different.
+- name: cmtf2-minio-s3-service
+  protocol: https
+  host: SWDUCTFTDMS91V.swd.hksarg
+  port: 9000
+  tls_verify: true
+  tls_verify_depth: 3
+  ca_certificates:
+  - 7f3a9c1e-2b4d-4e5f-8a9b-0c1d2e3f4a5b
+  - 7f3a9c1e-2b4d-4e5f-8a9b-0c1d2e3f4a5c
+  retries: 0
+  connect_timeout: 5000
+  read_timeout: 600000
+  write_timeout: 600000
+  routes:
+  - name: cmtf2-minio-s3-route
+    protocols:
+    - https
+    paths:
+    - ~/nocobase(?:/|$)
+    strip_path: false
+    preserve_host: true
+    request_buffering: false
+    response_buffering: false
+plugins:
+- name: correlation-id
+  config:
+    header_name: X-Request-ID
+    generator: uuid
+    echo_downstream: true
+# SITE: actual trusted CA PEM certificates; IDs must match service references.
+ca_certificates:
+- id: 7f3a9c1e-2b4d-4e5f-8a9b-0c1d2e3f4a5b
+  cert: '-----BEGIN CERTIFICATE-----
+
+    MIID+zCCAuOgAwIBAgIQbKGq1QjzWb5LJYcL8mo27TANBgkqhkiG9w0BAQsFADCB
+
+    jzELMAkGA1UEBhMCSEsxJDAiBgNVBAoTG1RoZSBHb3Zlcm5tZW50IG9mIHRoZSBI
+
+    S1NBUjE8MDoGA1UECxMzSW50cmFuZXQgU2VydmVyIENlcnRpZmljYXRlIENlcnRp
+
+    ZmljYXRpb24gQXV0aG9yaXR5MRwwGgYDVQQDExNJU0NDQSBSb290IENBIDI1Ni0y
+
+    MB4XDTIyMDEyNTAzMzMzMloXDTMyMDEyNTAzNDMzMlowgY8xCzAJBgNVBAYTAkhL
+
+    MSQwIgYDVQQKExtUaGUgR292ZXJubWVudCBvZiB0aGUgSEtTQVIxPDA6BgNVBAsT
+
+    M0ludHJhbmV0IFNlcnZlciBDZXJ0aWZpY2F0ZSBDZXJ0aWZpY2F0aW9uIEF1dGhv
+
+    cml0eTEcMBoGA1UEAxMTSVNDQ0EgUm9vdCBDQSAyNTYtMjCCASIwDQYJKoZIhvcN
+
+    AQEBBQADggEPADCCAQoCggEBAKg4lW89gbD1miFggh0/jKOOWxa/54LOciRa7oRH
+
+    HyMhCMaauqlKD+ryP1NZhoVsZc22iI1oNb26hZ3dn8tOPFjRZTrxeuydOBVxYM3e
+
+    YDaF4deMspL/AYM5R0URFy0l99apZnKl9IMycMmDmNvCr4bu7liprhbEW+J2Ehx2
+
+    oZOpb2aW95M3eNWZbEyE8AozhQznWcuE4ItzV7KWxqHi7kTQFyWFoO0aBEHTYEpP
+
+    NxwM4cnaJNtspQcCOzY/WYF3GFlzTo1+D79z6F4Tf6H2399YxSD7Vgra6futnQYP
+
+    +yEuv4diWSQ8YAlih633+ZvP9PoIxqGnfFxiORnHp0O8fPcCAwEAAaNRME8wCwYD
+
+    VR0PBAQDAgEGMA8GA1UdEwEB/wQFMAMBAf8wHQYDVR0OBBYEFIPQ9EAl7T4AVLTG
+
+    5Tkq2+ayJL/9MBAGCSsGAQQBgjcVAQQDAgEAMA0GCSqGSIb3DQEBCwUAA4IBAQBI
+
+    0bhMvDlasiEDdhJTtYh5kygmIUmMpjIDSxBFrQyqkrR8mDGxboAkyk7QVM+PNcTk
+
+    tRV69PglUq3DxyeckpWKFDK0x5mFkQVNmYbkpPe6S0I3XMe/w/ojlK3UqWlfxW7X
+
+    XTJIcR2fBmTSKGUBUPYIdvBb9fgIDeKUjwEaQHVWCRM+XiE6s9v2FZK5Zm9enOd+
+
+    toeCeQb+mF4S9+ia1gPGJwc9OJA2VqRW3ujX+a0hIfIIS9hfqF0iV7czZl3xuJF0
+
+    tFw5QPQudtR8IITjM6tRbROHtPgH1RbQjYMayLLiyV0dQ0Ut/Oppf9p6VkUA9GBj
+
+    02/h66RdmM/8pZ0heowN
+
+    -----END CERTIFICATE-----
+
+    '
+- id: 7f3a9c1e-2b4d-4e5f-8a9b-0c1d2e3f4a5c
+  cert: '-----BEGIN CERTIFICATE-----
+
+    MIIE1zCCA7+gAwIBAgITHgAAAAK2zxlD3RWBfAAAAAAAAjANBgkqhkiG9w0BAQsF
+
+    ADCBjzELMAkGA1UEBhMCSEsxJDAiBgNVBAoTG1RoZSBHb3Zlcm5tZW50IG9mIHRo
+
+    ZSBIS1NBUjE8MDoGA1UECxMzSW50cmFuZXQgU2VydmVyIENlcnRpZmljYXRlIENl
+
+    cnRpZmljYXRpb24gQXV0aG9yaXR5MRwwGgYDVQQDExNJU0NDQSBSb290IENBIDI1
+
+    Ni0yMB4XDTIyMDEyNTA3MjQyNloXDTMyMDEyNTAzNDMzMlowgaAxCzAJBgNVBAYT
+
+    AkhLMSQwIgYDVQQKExtUaGUgR292ZXJubWVudCBvZiB0aGUgSEtTQVIxPDA6BgNV
+
+    BAsTM0ludHJhbmV0IFNlcnZlciBDZXJ0aWZpY2F0ZSBDZXJ0aWZpY2F0aW9uIEF1
+
+    dGhvcml0eTEtMCsGA1UEAxMkSW50cmFuZXQgU2VydmVyIENlcnRpZmljYXRlIENB
+
+    IDI1Ni0yMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuy7++PCeZF6/
+
+    phbXDZsxrzXbIm6PiLL5UfapqmLuCek3x2qJ0Gnp4ejUjs0VTyF9PZEO/kRBvsZu
+
+    2QLV7CRZlO1+nGd2wWKwfkYTQcrdoSqUWebEADI5//MXv1V491ThvdrC/6GIDAUH
+
+    hKykyN1L9zoRGSdRAyk4cKm0Cc2bkhjqvhCBMlGgl5L5Zc3C99hZkG0me56JsFIY
+
+    XyZY8G/5FejRkJxGO1RxCe9dVUN0NQW/Gws05q7jAR7UECbGAFVn7zTyiJL1N8z/
+
+    y7F2FraGiBCiJXxOMXlJGipvS2T5mnzSZvuqbLJLW62rJxy7sAGhP2u1a+/y7mbb
+
+    Tff3QN2QuQIDAQABo4IBFzCCARMwEAYJKwYBBAGCNxUBBAMCAQAwHQYDVR0OBBYE
+
+    FNSsuKEa1ANyd45QxqraN453O9SmMBkGCSsGAQQBgjcUAgQMHgoAUwB1AGIAQwBB
+
+    MA4GA1UdDwEB/wQEAwIBBjAPBgNVHRMBAf8EBTADAQH/MB8GA1UdIwQYMBaAFIPQ
+
+    9EAl7T4AVLTG5Tkq2+ayJL/9MIGCBgNVHR8EezB5MHegdaBzhjhodHRwOi8vaXRn
+
+    aW5mby5jY2dvLmhrc2FyZy9jb250ZW50L2lzY2NhL2NybC9jYTI1Ni0yLmNybIY3
+
+    aHR0cDovL3d3dy5pdGdpbmZvLmdvdi5oay9jb250ZW50L2lzY2NhL2NybC9jYTI1
+
+    Ni0yLmNybDANBgkqhkiG9w0BAQsFAAOCAQEAjuspCK29S5Y3ZWIB3QxP4TJVWm1W
+
+    UN2Am8vD8yl5f9J9YZKEAuwKooSvDI5Aux9Je9hXq04fLMF+E1gXd6oRH+zSHjFy
+
+    2PK7iH45rNmZf3tJoux5y03v/P2YqNTDh46emqvg0eAXVNPRZdQ47eaTw4nWghed
+
+    ouYbgnqTvCpJcnqMi1s5i1JNlTzbK5k9PSo5nohpEWMOPnkgDH1SRGvm44GlrrQZ
+
+    6V3LE3izXCt/ZS3mMH55NTkO9voVsOpKI2IeW1OTbzYemMZbAcIrKQ8aqsktUQNK
+
+    dNPZ23oPY4QpwwcoMKdOpEsGVL/SHmODeWLSNtfi/z7hvaNMwqLSMk97wA==
+
+    -----END CERTIFICATE-----
+
+    '
+# SITE: real application servers, not the public gateway address.
+upstreams:
+- name: nocobase-backend
+  targets:
+  - target: SWDUCTFTAPP91V.swd.hksarg:8443
+  - target: SWDUCTFTAPP93V.swd.hksarg:8443
+  - target: SWDUCTFTAPP92V.swd.hksarg:8443
