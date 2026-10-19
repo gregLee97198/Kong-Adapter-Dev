@@ -7,13 +7,13 @@
 - `delivery/kong-3.9.3.zip.part*`：完整ZIP的分卷，受GitHub单文件大小限制，需先还原。
 - `delivery/manifest.json`：分卷及完整ZIP SHA256。
 - `restore-package.ps1`：本机还原及校验；不会部署或构建。
-- `部署命令清单.md`：唯一正式部署流程，先.229后.230，.228仅需要重部署时执行。
+- [部署命令清单.md](部署命令清单.md)：已整合上传命令、Token迁移、权限更新、容器创建与启动、部署验证和清理；先.229后.230，.228仅需要重部署时执行。
 - `接口清单.md`：包内实际路由。
 
 在仓库目录执行：
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .estore-package.ps1
+powershell -ExecutionPolicy Bypass -File .\restore-package.ps1
 ```
 
 输出 `delivery/kong-3.9.3.zip`，仅含：
