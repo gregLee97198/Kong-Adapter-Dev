@@ -1,0 +1,37 @@
+# Git template: credentials removed. Set config_token before deployment.
+# SIT configuration; defaults follow the previously verified .228 profile.
+# Host file: /etc/cmtf2/kong-adapter/nocobase.yaml
+# Container file: /app/config/nocobase.yaml (read-only bind mount).
+# Edit this host YAML and restart adapter; no image rebuild required.
+# Remove NOCOBASE_* overrides from container creation, except NOCOBASE_CONFIG_PATH
+# if needed. Existing container environment requires container recreation once.
+# CONFIGURE: config_token supplied by deployment owner on 2026-10-20.
+# Contains site credentials: restrict distribution to authorized deployment staff.
+# Preserve current webhook IDs if they differ from the defaults below.
+# No MinIO access key/secret/bucket settings: obtain storage metadata via NocoBase.
+nocobase:
+  version: 2.2.3
+  # Internal application API root; keep /cmtf2, exclude /api and browser signin.
+  # CONFIGURE: default shared APP91V; change only if site topology requires it.
+  base_url: https://SWDUCTFTAPP91V.swd.hksarg:8443/cmtf2
+  authenticator: basic
+  # Fetch default storage from upstream NocoBase using config_token.
+  # Do not fill storage name, attachment field, MinIO keys or bucket here.
+  storage:
+    selection: default
+  # Site-specific API paths and webhook IDs: verify against the live profile.
+  api:
+    auth_sign_in: /api/auth:signIn
+    auth_check: /api/auth:check
+    simple_test: /api/webhook:trigger/xv3juqwl4my
+    homerecord_query: /api/webhook:trigger/nyljpyltaxc
+    request_staging_create: /api/t_api_request_staging:create
+    storage_basic_info: /api/storages:getBasicInfo
+    storage_basic_info_by_name: /api/storages:getBasicInfo/{storage_name}
+    create_presigned_url: /api/storages:createPresignedUrl
+    attachment_create: /api/attachments:create
+    attachment_download: /files/main/main/attachments/{attachment_id}
+  response:
+    data_key: data
+  # CONFIGURE: upstream API key; supplied for this release. Do not commit to Git.
+  config_token: '' # REQUIRED: fill site API key locally; never commit

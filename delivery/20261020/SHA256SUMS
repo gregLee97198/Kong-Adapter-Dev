@@ -1,0 +1,5 @@
+f1cc25e15f52b5f6f068f46fd5e72d68331d036917f4c6abd8342125bf588b95  kong-3.9.3/adapter.yaml
+892151bd4e8a88b1b42a88f830326b86e39862ad07fe93f332638eefa313bef4  kong-3.9.3/kong.yaml
+54bf83fc0eee6543897c94773fdb648844fc93bb87d6b2a1fc106e4bc35c63a4  kong-3.9.3/images/adapter.tar.gz
+ca91abe14088a948465bd2dac5aa41dea3b3c7cef6e5271217582d4359ba616d  kong-3.9.3/images/kong.tar.gz
+bbd70bbbd5516dedb8114a8fad41c11f77be6fbab68ccfb3bff38ff8aae2ebb4  kong-3.9.3.zip

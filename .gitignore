@@ -4,3 +4,8 @@ delivery/kong-3.9.3.zip
 site-private/
 .DS_Store
 delivery/kong-3.9.3.zip
+
+# Private offline delivery archives/configuration
+**/kong-3.9.3.zip
+**/images/*.tar.gz
+**/adapter.yaml

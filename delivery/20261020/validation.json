@@ -1,0 +1,27 @@
+{
+  "source": "db6b0bc",
+  "build_date": "2026-10-20",
+  "images": [
+    {
+      "tag": "kong-gateway:3.9.3",
+      "id": "sha256:55f0b3158ad08319974b94cde7838166a5df00fe70df63c202d72213cff7705b",
+      "os": "linux",
+      "architecture": "amd64",
+      "revision": "db6b0bc"
+    },
+    {
+      "tag": "kong-adapter:3.9.3",
+      "id": "sha256:41f1b04744a45be3c4a68e793500505ad8eba201475a96c9693a23c7edb6305d",
+      "os": "linux",
+      "architecture": "amd64",
+      "revision": "db6b0bc"
+    }
+  ],
+  "source_tests_passed": 342,
+  "kong_parse": "passed",
+  "network_disabled_image_smoke": "passed",
+  "sit_runtime": "pending user deployment; database recovery reported by user, not independently verified",
+  "export_reload": "passed",
+  "pip_check": "passed",
+  "zip_integrity": "passed"
+}
